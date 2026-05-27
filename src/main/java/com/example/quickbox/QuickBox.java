@@ -1,19 +1,32 @@
 package com.example.quickbox;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
 
-public final class QuickBox extends JavaPlugin implements CommandExecutor, TabCompleter {
+public final class QuickBox extends JavaPlugin implements CommandExecutor, TabCompleter, Listener {
+
+    // Track custom ender chest inventories by their title (unique per viewer)
+    // Map: Inventory -> source ender chest
+    private final Map<Inventory, Inventory> mirrorSources = new WeakHashMap<>();
 
     @Override
     public void onEnable() {
         registerCommand("enderchest", List.of("ec"));
         registerCommand("workbench", List.of("wb", "craft"));
+        getServer().getPluginManager().registerEvents(this, this);
         getLogger().info("QuickBox enabled!");
     }
 
@@ -83,17 +96,37 @@ public final class QuickBox extends JavaPlugin implements CommandExecutor, TabCo
                 return true;
             }
             player.getScheduler().run(this, task -> {
-                player.openInventory(target.getEnderChest());
+                openEnderChest(player, target);
             }, null);
             return true;
         }
 
         // Open own ender chest
         player.getScheduler().run(this, task -> {
-            player.openInventory(player.getEnderChest());
+            openEnderChest(player, player);
         }, null);
 
         return true;
+    }
+
+    private void openEnderChest(Player viewer, Player owner) {
+        Inventory source = owner.getEnderChest();
+        Component title = Component.text(owner.getName() + " 的末影箱")
+                .color(NamedTextColor.DARK_PURPLE)
+                .decoration(TextDecoration.ITALIC, false);
+        Inventory mirror = Bukkit.createInventory(null, InventoryType.ENDER_CHEST, title);
+        mirror.setContents(source.getContents());
+        mirrorSources.put(mirror, source);
+        viewer.openInventory(mirror);
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        Inventory inv = event.getInventory();
+        Inventory source = mirrorSources.remove(inv);
+        if (source != null) {
+            source.setContents(inv.getContents());
+        }
     }
 
     @Override
