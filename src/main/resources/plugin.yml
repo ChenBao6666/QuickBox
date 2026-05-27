@@ -1,0 +1,26 @@
+name: QuickBox
+version: 1.0.0
+author: Administrator
+main: com.example.quickbox.QuickBox
+api-version: "1.21"
+description: Quick ender chest and workbench commands
+folia-supported: true
+permissions:
+  quickbox.enderchest:
+    description: Allows using /ec to open own ender chest
+    default: true
+  quickbox.workbench:
+    description: Allows using /wb to open workbench
+    default: true
+  quickbox.admin:
+    description: Allows opening other players' ender chests
+    default: op
+commands:
+  enderchest:
+    description: Open your ender chest
+    aliases: [ec]
+    usage: /<command> [player]
+  workbench:
+    description: Open a crafting table
+    aliases: [wb, craft]
+    usage: /<command>
